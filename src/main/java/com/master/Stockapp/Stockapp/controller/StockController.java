@@ -10,9 +10,7 @@ import net.jacobpeterson.alpaca.model.endpoint.assets.Asset;
 import net.jacobpeterson.alpaca.model.endpoint.assets.enums.AssetStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -36,11 +34,33 @@ public class StockController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    public void insertAllStocks() {
+    @PostMapping("/insert")
+    public ResponseEntity insertAllStocks() {
         List<Asset> assets = stockService.insertAllStocks();
-        List<String> symbols = assets.stream().map(Asset::getSymbol).collect(Collectors.toList());
         for (Asset asset : assets) {
-            if(asset.getTradable() && asset.getStatus() == AssetStatus.ACTIVE &&  !symbols.contains(asset.getSymbol())) {
+            if (asset.getTradable() && asset.getStatus() == AssetStatus.ACTIVE) {
+                Stock stock = new Stock();
+                stock.setCompany(asset.getName());
+                stock.setSymbol(asset.getSymbol());
+                stockRepository.save(stock);
+            }
+        }
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @DeleteMapping
+    public ResponseEntity removeAllStocks() {
+        stockRepository.deleteAll();
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity updateStocks() {
+        List<Asset> assets = stockService.insertAllStocks();
+        List<Stock> allStocks = stockRepository.findAll();
+        List<String> symbols = allStocks.stream().map(Stock::getSymbol).collect(Collectors.toList());
+        for (Asset asset : assets) {
+            if (asset.getTradable() && asset.getStatus() == AssetStatus.ACTIVE && !symbols.contains(asset.getSymbol())) {
                 Stock stock = new Stock();
                 stock.setCompany(asset.getName());
                 stock.setSymbol(asset.getSymbol());
@@ -48,5 +68,6 @@ public class StockController {
                 System.out.println("Added a new stock " + asset.getSymbol() + " " + asset.getName());
             }
         }
+        return new ResponseEntity(HttpStatus.OK);
     }
 }
